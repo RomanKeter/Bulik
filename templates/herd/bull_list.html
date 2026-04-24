@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <h3>Список быков</h3>
+    <table>
+        <tr>
+            <th>Полный номер</th>
+            <th>Бивайка</th>
+            <th>Номер быка</th>
+            <th>Секция</th>
+            <th>Текущий вес</th>
+            <th>Статус</th>
+        </tr>
+        {% for bull in bulls %}
+            <tr>
+                <td><a href="{% url 'herd:bull-detail' bull.id %}">{{ bull.external_id }}</a></td>
+                <td>{{ bull.biavka_part }}</td>
+                <td>{{ bull.bull_number }}</td>
+                <td>{{ bull.section|default:"-" }}</td>
+                <td>{{ bull.current_weight|default:"-" }}</td>
+                <td>{% if bull.is_active %}На площадке{% else %}Выбыл{% endif %}</td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="6">Быки еще не добавлены.</td></tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <h3>Импорт Excel</h3>
+    <p class="muted">
+        Ожидается формат: A - полный номер быка, B - прошлый вес, C - текущий вес.
+        Даты двух взвешиваний указываются в форме ниже.
+    </p>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button class="btn" type="submit">Загрузить и обработать</button>
+    </form>
+</div>
+{% endblock %}

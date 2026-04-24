@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <h3>Карточка быка {{ bull.external_id }}</h3>
+    <p><strong>Бивайка:</strong> {{ bull.biavka_part }}</p>
+    <p><strong>Номер быка:</strong> {{ bull.bull_number }}</p>
+    <p><strong>Секция:</strong> {{ bull.section|default:"-" }}</p>
+    <p><strong>Текущий вес:</strong> {{ bull.current_weight|default:"-" }}</p>
+    <p><strong>Статус:</strong> {% if bull.is_active %}На площадке{% else %}Выбыл{% endif %}</p>
+</div>
+
+{% if departure %}
+<div class="card">
+    <h3>Выбытие</h3>
+    <p><strong>Дата:</strong> {{ departure.departed_at }}</p>
+    <p><strong>Маркер:</strong> {{ departure.get_reason_display }}</p>
+    <p><strong>Комментарий:</strong> {{ departure.comment|default:"-" }}</p>
+</div>
+{% endif %}
+
+<div class="grid">
+    <div class="card">
+        <h3>История взвешиваний</h3>
+        <table>
+            <tr><th>Дата</th><th>Вес, кг</th><th>Источник</th><th>Комментарий</th></tr>
+            {% for rec in weights %}
+                <tr>
+                    <td>{{ rec.weighing_date }}</td>
+                    <td>{{ rec.weight_kg }}</td>
+                    <td>{{ rec.get_source_display }}</td>
+                    <td>{{ rec.note|default:"-" }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="4">Нет записей</td></tr>
+            {% endfor %}
+        </table>
+    </div>
+    <div class="card">
+        <h3>История перемещений</h3>
+        <table>
+            <tr><th>Дата</th><th>Из</th><th>В</th><th>Комментарий</th></tr>
+            {% for mv in movements %}
+                <tr>
+                    <td>{{ mv.moved_at }}</td>
+                    <td>{{ mv.from_section }}</td>
+                    <td>{{ mv.to_section }}</td>
+                    <td>{{ mv.note|default:"-" }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="4">Нет перемещений</td></tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+{% endblock %}
