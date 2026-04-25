@@ -39,6 +39,20 @@ allowed_hosts_from_env = [
 ]
 ALLOWED_HOSTS = allowed_hosts_from_env or default_allowed_hosts
 
+default_csrf_trusted_origins = [
+    "https://bulik-production.up.railway.app",
+    "https://*.railway.app",
+]
+csrf_trusted_origins_from_env = [
+    origin.strip()
+    for origin in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+CSRF_TRUSTED_ORIGINS = csrf_trusted_origins_from_env or default_csrf_trusted_origins
+
+# Railway forwards HTTPS requests via proxy headers.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 
 # Application definition
 
