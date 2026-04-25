@@ -62,8 +62,9 @@ def import_weights_excel(file_obj, previous_date, current_date) -> ImportResult:
     - колонка B: вес на предыдущую дату;
     - колонка C: вес на текущую дату.
 
-    Если номер не найден, строка переносится в таблицу проблемных строк
-    с подсказками похожих номеров.
+    Если номер не найден:
+    - при наличии похожих номеров строка уходит в ручное сопоставление;
+    - если похожих номеров нет, создается новый бык (новое поступление).
     """
 
     wb = load_workbook(file_obj, data_only=True)
@@ -95,14 +96,19 @@ def import_weights_excel(file_obj, previous_date, current_date) -> ImportResult:
             continue
 
         suggested = get_similar_ids(raw_external_id)
-        ExcelImportPendingRow.objects.create(
-            batch=batch,
-            raw_external_id=raw_external_id,
-            previous_weight_kg=_as_decimal(prev_weight),
-            current_weight_kg=_as_decimal(curr_weight),
-            suggested_ids=suggested,
-        )
-        pending += 1
+        if not suggested:
+            bull = Bull.objects.create(external_id=raw_external_id)
+            _apply_weight_pair(bull, previous_date, current_date, prev_weight, curr_weight)
+            applied += 1
+        else:
+            ExcelImportPendingRow.objects.create(
+                batch=batch,
+                raw_external_id=raw_external_id,
+                previous_weight_kg=_as_decimal(prev_weight),
+                current_weight_kg=_as_decimal(curr_weight),
+                suggested_ids=suggested,
+            )
+            pending += 1
 
     batch.total_rows = total
     batch.applied_rows = applied

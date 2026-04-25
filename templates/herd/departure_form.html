@@ -2,6 +2,10 @@
 {% block content %}
 <div class="card">
     <h3>Регистрация выбытия</h3>
+    <p class="muted">
+        Фиксируйте вес на дату выбытия для расчетов среднесуточного привеса
+        и статистики по быко-дням.
+    </p>
     <form method="post">
         {% csrf_token %}
         {{ form.as_p }}

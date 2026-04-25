@@ -13,10 +13,33 @@
 <div class="card">
     <h3>Выбытие</h3>
     <p><strong>Дата:</strong> {{ departure.departed_at }}</p>
+    <p><strong>Вес на дату выбытия:</strong> {{ departure.departure_weight_kg }} кг</p>
     <p><strong>Маркер:</strong> {{ departure.get_reason_display }}</p>
     <p><strong>Комментарий:</strong> {{ departure.comment|default:"-" }}</p>
 </div>
 {% endif %}
+
+<div class="card">
+    <h3>Состояние здоровья и лечение</h3>
+    <form method="post" style="margin-bottom: 12px;">
+        {% csrf_token %}
+        {{ health_form.as_p }}
+        <button class="btn" type="submit">Добавить запись</button>
+    </form>
+    <table>
+        <tr><th>Дата</th><th>Состояние</th><th>Лечение/уколы</th><th>Комментарий</th></tr>
+        {% for rec in health_records %}
+            <tr>
+                <td>{{ rec.record_date }}</td>
+                <td>{{ rec.status_text }}</td>
+                <td>{{ rec.treatment_text|default:"-" }}</td>
+                <td>{{ rec.comment|default:"-" }}</td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="4">Записей о здоровье пока нет.</td></tr>
+        {% endfor %}
+    </table>
+</div>
 
 <div class="grid">
     <div class="card">

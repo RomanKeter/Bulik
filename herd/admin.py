@@ -6,6 +6,7 @@ from django.contrib import admin
 
 from .models import (
     Bull,
+    BullHealthRecord,
     DepartureEvent,
     ExcelImportBatch,
     ExcelImportPendingRow,
@@ -44,8 +45,15 @@ class SectionMovementAdmin(admin.ModelAdmin):
 
 @admin.register(DepartureEvent)
 class DepartureEventAdmin(admin.ModelAdmin):
-    list_display = ("bull", "departed_at", "reason")
+    list_display = ("bull", "departed_at", "departure_weight_kg", "reason")
     list_filter = ("reason", "departed_at")
+
+
+@admin.register(BullHealthRecord)
+class BullHealthRecordAdmin(admin.ModelAdmin):
+    list_display = ("bull", "record_date", "status_text", "treatment_text")
+    list_filter = ("record_date",)
+    search_fields = ("bull__external_id", "bull__bull_number", "status_text", "treatment_text", "comment")
 
 
 class ExcelImportPendingRowInline(admin.TabularInline):

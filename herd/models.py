@@ -197,6 +197,12 @@ class DepartureEvent(models.Model):
         related_name="departure",
     )
     departed_at = models.DateField("Дата выбытия", default=timezone.localdate)
+    departure_weight_kg = models.DecimalField(
+        "Вес на дату выбытия, кг",
+        max_digits=7,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+    )
     reason = models.CharField("Маркер выбытия", max_length=32, choices=REASON_CHOICES)
     comment = models.CharField("Комментарий", max_length=255, blank=True)
 
@@ -205,6 +211,32 @@ class DepartureEvent(models.Model):
 
     def __str__(self) -> str:
         return f"{self.bull.external_id}: {self.get_reason_display()}"
+
+
+class BullHealthRecord(models.Model):
+    """
+    Запись о здоровье быка и проведенном лечении.
+
+    Нужна для фиксации симптомов, уколов и динамики состояния животного.
+    """
+
+    bull = models.ForeignKey(
+        Bull,
+        verbose_name="Бык",
+        on_delete=models.CASCADE,
+        related_name="health_records",
+    )
+    record_date = models.DateField("Дата записи", default=timezone.localdate)
+    status_text = models.CharField("Состояние", max_length=255)
+    treatment_text = models.CharField("Лечение/уколы", max_length=255, blank=True)
+    comment = models.CharField("Комментарий", max_length=255, blank=True)
+    created_at = models.DateTimeField("Создано", auto_now_add=True)
+
+    class Meta:
+        ordering = ["-record_date", "-id"]
+
+    def __str__(self) -> str:
+        return f"{self.bull.external_id}: {self.record_date} - {self.status_text}"
 
 
 class ExcelImportBatch(models.Model):

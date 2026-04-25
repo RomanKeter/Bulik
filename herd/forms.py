@@ -4,7 +4,7 @@
 
 from django import forms
 
-from .models import Bull, DepartureEvent, SectionMovement
+from .models import Bull, BullHealthRecord, DepartureEvent, SectionMovement
 
 
 class ExcelImportForm(forms.Form):
@@ -63,4 +63,14 @@ class DepartureForm(forms.ModelForm):
 
     class Meta:
         model = DepartureEvent
-        fields = ["bull", "departed_at", "reason", "comment"]
+        fields = ["bull", "departed_at", "departure_weight_kg", "reason", "comment"]
+
+
+class BullHealthRecordForm(forms.ModelForm):
+    """
+    Форма добавления записи о состоянии/лечении в карточке быка.
+    """
+
+    class Meta:
+        model = BullHealthRecord
+        fields = ["record_date", "status_text", "treatment_text", "comment"]

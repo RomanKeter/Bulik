@@ -3,10 +3,18 @@
 """
 
 from django.contrib import messages
+from django.db.models import DecimalField, OuterRef, Q, Subquery
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 
-from .forms import DepartureForm, ExcelImportForm, ManualWeightForm, MovementForm, ResolveImportRowForm
+from .forms import (
+    BullHealthRecordForm,
+    DepartureForm,
+    ExcelImportForm,
+    ManualWeightForm,
+    MovementForm,
+    ResolveImportRowForm,
+)
 from .models import Bull, ExcelImportBatch, ExcelImportPendingRow, WeightRecord
 from .services import build_dashboard_stats, build_growth_rating, import_weights_excel, resolve_pending_row
 
@@ -34,8 +42,36 @@ class BullListView(View):
     template_name = "herd/bull_list.html"
 
     def get(self, request):
-        bulls = Bull.objects.select_related("section").order_by("bull_number")
-        return render(request, self.template_name, {"bulls": bulls})
+        search_query = (request.GET.get("q") or "").strip()
+        sort_weight = (request.GET.get("sort_weight") or "").strip()
+
+        latest_weight_sq = WeightRecord.objects.filter(bull=OuterRef("pk")).order_by("-weighing_date", "-id")
+        bulls = Bull.objects.select_related("section").annotate(
+            latest_weight=Subquery(
+                latest_weight_sq.values("weight_kg")[:1],
+                output_field=DecimalField(max_digits=7, decimal_places=2),
+            )
+        )
+
+        if search_query:
+            bulls = bulls.filter(
+                Q(bull_number__icontains=search_query)
+                | Q(biavka_part__icontains=search_query)
+                | Q(external_id__icontains=search_query)
+            )
+
+        if sort_weight == "asc":
+            bulls = bulls.order_by("latest_weight", "bull_number")
+        elif sort_weight == "desc":
+            bulls = bulls.order_by("-latest_weight", "bull_number")
+        else:
+            bulls = bulls.order_by("bull_number")
+
+        return render(
+            request,
+            self.template_name,
+            {"bulls": bulls, "search_query": search_query, "sort_weight": sort_weight},
+        )
 
 
 class BullDetailView(View):
@@ -55,6 +91,31 @@ class BullDetailView(View):
                 "weights": bull.weight_records.order_by("-weighing_date"),
                 "movements": bull.movements.select_related("from_section", "to_section").order_by("-moved_at"),
                 "departure": getattr(bull, "departure", None),
+                "health_records": bull.health_records.order_by("-record_date", "-id"),
+                "health_form": BullHealthRecordForm(),
+            },
+        )
+
+    def post(self, request, bull_id):
+        bull = get_object_or_404(Bull.objects.select_related("section"), pk=bull_id)
+        form = BullHealthRecordForm(request.POST)
+        if form.is_valid():
+            rec = form.save(commit=False)
+            rec.bull = bull
+            rec.save()
+            messages.success(request, "Запись о здоровье сохранена.")
+            return redirect("herd:bull-detail", bull_id=bull_id)
+
+        return render(
+            request,
+            self.template_name,
+            {
+                "bull": bull,
+                "weights": bull.weight_records.order_by("-weighing_date"),
+                "movements": bull.movements.select_related("from_section", "to_section").order_by("-moved_at"),
+                "departure": getattr(bull, "departure", None),
+                "health_records": bull.health_records.order_by("-record_date", "-id"),
+                "health_form": form,
             },
         )
 
@@ -67,7 +128,8 @@ class ImportExcelView(View):
     template_name = "herd/import_excel.html"
 
     def get(self, request):
-        return render(request, self.template_name, {"form": ExcelImportForm()})
+        recent_batches = ExcelImportBatch.objects.order_by("-created_at")[:10]
+        return render(request, self.template_name, {"form": ExcelImportForm(), "recent_batches": recent_batches})
 
     def post(self, request):
         form = ExcelImportForm(request.POST, request.FILES)
@@ -83,7 +145,20 @@ class ImportExcelView(View):
             )
             return redirect("herd:import-batch-detail", batch_id=result.batch.id)
 
-        return render(request, self.template_name, {"form": form})
+        recent_batches = ExcelImportBatch.objects.order_by("-created_at")[:10]
+        return render(request, self.template_name, {"form": form, "recent_batches": recent_batches})
+
+
+class ImportHistoryView(View):
+    """
+    История загруженных пакетов Excel.
+    """
+
+    template_name = "herd/import_history.html"
+
+    def get(self, request):
+        batches = ExcelImportBatch.objects.order_by("-created_at")
+        return render(request, self.template_name, {"batches": batches})
 
 
 class ImportBatchDetailView(View):

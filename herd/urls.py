@@ -11,6 +11,7 @@ from .views import (
     DepartureCreateView,
     ImportBatchDetailView,
     ImportExcelView,
+    ImportHistoryView,
     ManualWeightCreateView,
     MovementCreateView,
     ResolveImportRowView,
@@ -26,6 +27,7 @@ urlpatterns = [
     path("movements/new/", MovementCreateView.as_view(), name="movement-create"),
     path("departures/new/", DepartureCreateView.as_view(), name="departure-create"),
     path("import/excel/", ImportExcelView.as_view(), name="import-excel"),
+    path("import/history/", ImportHistoryView.as_view(), name="import-history"),
     path("import/batch/<int:batch_id>/", ImportBatchDetailView.as_view(), name="import-batch-detail"),
     path("import/resolve/<int:row_id>/", ResolveImportRowView.as_view(), name="resolve-import-row"),
 ]
