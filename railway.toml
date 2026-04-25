@@ -1,2 +1,2 @@
 [deploy]
-startCommand = "sh -c 'python manage.py migrate && python manage.py init_sections && exec gunicorn farm_site.wsgi:application --bind 0.0.0.0:${PORT:-8080} --workers 2 --threads 2 --timeout 120 --access-logfile - --error-logfile - --capture-output'"
+startCommand = "sh -c 'python manage.py migrate && python manage.py init_sections && exec gunicorn farm_site.wsgi:application --bind 0.0.0.0:${PORT:-8080} --workers 1 --threads 1 --timeout 120 --access-logfile - --error-logfile - --capture-output --log-level info'"
