@@ -9,6 +9,16 @@
     <p><strong>Статус:</strong> {% if bull.is_active %}На площадке{% else %}Выбыл{% endif %}</p>
 </div>
 
+{% if arrival %}
+<div class="card">
+    <h3>Поступление</h3>
+    <p><strong>Дата:</strong> {{ arrival.arrived_at }}</p>
+    <p><strong>Секция поступления:</strong> {{ arrival.section }}</p>
+    <p><strong>Вес при поступлении:</strong> {{ arrival.arrival_weight_kg|default:"-" }} кг</p>
+    <p><strong>Комментарий:</strong> {{ arrival.comment|default:"-" }}</p>
+</div>
+{% endif %}
+
 {% if departure %}
 <div class="card">
     <h3>Выбытие</h3>

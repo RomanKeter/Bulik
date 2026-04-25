@@ -3,17 +3,31 @@
 <div class="card">
     <h3>Сопоставление номера</h3>
     <p><strong>Номер из файла:</strong> {{ row.raw_external_id }}</p>
-    <p><strong>Предыдущий вес:</strong> {{ row.previous_weight_kg }}</p>
-    <p><strong>Текущий вес:</strong> {{ row.current_weight_kg }}</p>
+    <p><strong>Первый вес в строке:</strong> {{ row.previous_weight_kg }}</p>
+    <p><strong>Последний вес в строке:</strong> {{ row.current_weight_kg }}</p>
     <p><strong>Похожие номера:</strong> {{ row.suggested_ids|join:", "|default:"Нет подсказок" }}</p>
 </div>
 
 <div class="card">
+    <h3>Это опечатка: сопоставить с существующим быком</h3>
     <form method="post">
         {% csrf_token %}
         {{ form.as_p }}
         <button class="btn" type="submit">Подтвердить сопоставление</button>
         <a class="btn btn-secondary" href="{% url 'herd:import-batch-detail' row.batch_id %}">Назад</a>
+    </form>
+</div>
+
+<div class="card">
+    <h3>Это новый бык: создать карточку</h3>
+    <p class="muted">
+        Используйте этот вариант только если убедились, что номер из Excel не
+        является опечаткой, а относится к новому поступившему быку.
+    </p>
+    <form method="post" action="{% url 'herd:create-bull-from-pending' row.id %}">
+        {% csrf_token %}
+        {{ create_form.as_p }}
+        <button class="btn" type="submit">Создать нового быка</button>
     </form>
 </div>
 {% endblock %}

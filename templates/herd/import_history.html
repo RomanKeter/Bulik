@@ -7,7 +7,7 @@
         <tr>
             <th>ID</th>
             <th>Загружено</th>
-            <th>Пара дат</th>
+            <th>Даты из файла</th>
             <th>Строк всего</th>
             <th>Применено</th>
             <th>Требуют сопоставления</th>
@@ -17,7 +17,7 @@
             <tr>
                 <td>#{{ batch.id }}</td>
                 <td>{{ batch.created_at }}</td>
-                <td>{{ batch.previous_weighing_date }} -> {{ batch.current_weighing_date }}</td>
+                <td>{{ batch.weighing_dates|join:", " }}</td>
                 <td>{{ batch.total_rows }}</td>
                 <td>{{ batch.applied_rows }}</td>
                 <td>{{ batch.pending_rows }}</td>

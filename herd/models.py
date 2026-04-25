@@ -141,6 +141,45 @@ class WeightRecord(models.Model):
         return f"{self.bull.external_id} - {self.weighing_date} - {self.weight_kg} кг"
 
 
+class ArrivalEvent(models.Model):
+    """
+    Поступление быка на площадку.
+
+    В промте отдельно указано, что нужно учитывать поступление быков на
+    площадку и их размещение по секциям. Эта модель фиксирует дату прихода,
+    стартовую секцию и, если известен, вес на дату поступления.
+    """
+
+    bull = models.OneToOneField(
+        Bull,
+        verbose_name="Бык",
+        on_delete=models.CASCADE,
+        related_name="arrival",
+    )
+    arrived_at = models.DateField("Дата поступления", default=timezone.localdate)
+    section = models.ForeignKey(
+        Section,
+        verbose_name="Секция поступления",
+        on_delete=models.PROTECT,
+        related_name="arrivals",
+    )
+    arrival_weight_kg = models.DecimalField(
+        "Вес при поступлении, кг",
+        max_digits=7,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        null=True,
+        blank=True,
+    )
+    comment = models.CharField("Комментарий", max_length=255, blank=True)
+
+    class Meta:
+        ordering = ["-arrived_at", "-id"]
+
+    def __str__(self) -> str:
+        return f"{self.bull.external_id}: поступление {self.arrived_at}"
+
+
 class SectionMovement(models.Model):
     """
     Перемещение быка между секциями.
@@ -243,14 +282,19 @@ class ExcelImportBatch(models.Model):
     """
     Пакет импорта Excel.
 
-    Один пакет соответствует одной загруженной таблице с двумя колонками веса:
-    - прошлое взвешивание;
-    - текущее взвешивание.
+    Один пакет соответствует одной загруженной таблице.
+    В рабочем формате первая колонка - номер быка, а заголовки остальных
+    колонок - даты взвешиваний. Значения в строках - веса на эти даты.
     """
 
     created_at = models.DateTimeField("Загружено", auto_now_add=True)
     previous_weighing_date = models.DateField("Дата предыдущего взвешивания")
     current_weighing_date = models.DateField("Дата текущего взвешивания")
+    weighing_dates = models.JSONField(
+        "Даты взвешиваний из Excel",
+        default=list,
+        help_text="Список дат из заголовков колонок B, C, D ... в формате YYYY-MM-DD.",
+    )
     total_rows = models.PositiveIntegerField("Строк в файле", default=0)
     applied_rows = models.PositiveIntegerField("Применено строк", default=0)
     pending_rows = models.PositiveIntegerField("Требуют сопоставления", default=0)
@@ -276,6 +320,11 @@ class ExcelImportPendingRow(models.Model):
     raw_external_id = models.CharField("Номер из файла", max_length=32)
     previous_weight_kg = models.DecimalField("Предыдущий вес, кг", max_digits=7, decimal_places=2)
     current_weight_kg = models.DecimalField("Текущий вес, кг", max_digits=7, decimal_places=2)
+    weights_by_date = models.JSONField(
+        "Веса по датам",
+        default=dict,
+        help_text="Все веса строки Excel: ключ - дата YYYY-MM-DD, значение - вес.",
+    )
     suggested_ids = models.JSONField(
         "Похожие номера",
         default=list,

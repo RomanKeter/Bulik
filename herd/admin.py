@@ -5,6 +5,7 @@
 from django.contrib import admin
 
 from .models import (
+    ArrivalEvent,
     Bull,
     BullHealthRecord,
     DepartureEvent,
@@ -35,6 +36,13 @@ class WeightRecordAdmin(admin.ModelAdmin):
     list_display = ("bull", "weighing_date", "weight_kg", "source")
     list_filter = ("source", "weighing_date")
     search_fields = ("bull__external_id",)
+
+
+@admin.register(ArrivalEvent)
+class ArrivalEventAdmin(admin.ModelAdmin):
+    list_display = ("bull", "arrived_at", "section", "arrival_weight_kg")
+    list_filter = ("arrived_at", "section")
+    search_fields = ("bull__external_id", "bull__bull_number")
 
 
 @admin.register(SectionMovement)

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <h3>Поступление быка</h3>
+    <p class="muted">
+        Здесь регистрируется новый бык на площадке: его полный номер, дата
+        поступления и секция, куда он поставлен.
+    </p>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button class="btn" type="submit">Сохранить поступление</button>
+    </form>
+</div>
+{% endblock %}

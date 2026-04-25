@@ -8,15 +8,23 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 
 from .forms import (
+    ArrivalForm,
     BullHealthRecordForm,
     DepartureForm,
     ExcelImportForm,
     ManualWeightForm,
     MovementForm,
+    PendingRowCreateBullForm,
     ResolveImportRowForm,
 )
-from .models import Bull, ExcelImportBatch, ExcelImportPendingRow, WeightRecord
-from .services import build_dashboard_stats, build_growth_rating, import_weights_excel, resolve_pending_row
+from .models import ArrivalEvent, Bull, ExcelImportBatch, ExcelImportPendingRow, WeightRecord
+from .services import (
+    build_dashboard_stats,
+    build_growth_rating,
+    create_bull_from_pending_row,
+    import_weights_excel,
+    resolve_pending_row,
+)
 
 
 class DashboardView(View):
@@ -90,6 +98,7 @@ class BullDetailView(View):
                 "bull": bull,
                 "weights": bull.weight_records.order_by("-weighing_date"),
                 "movements": bull.movements.select_related("from_section", "to_section").order_by("-moved_at"),
+                "arrival": getattr(bull, "arrival", None),
                 "departure": getattr(bull, "departure", None),
                 "health_records": bull.health_records.order_by("-record_date", "-id"),
                 "health_form": BullHealthRecordForm(),
@@ -113,6 +122,7 @@ class BullDetailView(View):
                 "bull": bull,
                 "weights": bull.weight_records.order_by("-weighing_date"),
                 "movements": bull.movements.select_related("from_section", "to_section").order_by("-moved_at"),
+                "arrival": getattr(bull, "arrival", None),
                 "departure": getattr(bull, "departure", None),
                 "health_records": bull.health_records.order_by("-record_date", "-id"),
                 "health_form": form,
@@ -134,11 +144,13 @@ class ImportExcelView(View):
     def post(self, request):
         form = ExcelImportForm(request.POST, request.FILES)
         if form.is_valid():
-            result = import_weights_excel(
-                file_obj=form.cleaned_data["excel_file"],
-                previous_date=form.cleaned_data["previous_weighing_date"],
-                current_date=form.cleaned_data["current_weighing_date"],
-            )
+            try:
+                result = import_weights_excel(file_obj=form.cleaned_data["excel_file"])
+            except ValueError as exc:
+                messages.error(request, str(exc))
+                recent_batches = ExcelImportBatch.objects.order_by("-created_at")[:10]
+                return render(request, self.template_name, {"form": form, "recent_batches": recent_batches})
+
             messages.success(
                 request,
                 f"Импорт завершен: применено {result.applied_rows}, требуют проверки {result.pending_rows}.",
@@ -191,11 +203,12 @@ class ResolveImportRowView(View):
     def get(self, request, row_id):
         row = get_object_or_404(ExcelImportPendingRow, pk=row_id)
         form = ResolveImportRowForm()
+        create_form = PendingRowCreateBullForm()
         if row.suggested_ids:
             form.fields["selected_bull"].queryset = Bull.objects.filter(external_id__in=row.suggested_ids)
         else:
             form.fields["selected_bull"].queryset = Bull.objects.filter(is_active=True)
-        return render(request, self.template_name, {"row": row, "form": form})
+        return render(request, self.template_name, {"row": row, "form": form, "create_form": create_form})
 
     def post(self, request, row_id):
         row = get_object_or_404(ExcelImportPendingRow, pk=row_id)
@@ -205,7 +218,69 @@ class ResolveImportRowView(View):
             resolve_pending_row(row, form.cleaned_data["selected_bull"])
             messages.success(request, "Строка успешно сопоставлена и применена.")
             return redirect("herd:import-batch-detail", batch_id=row.batch_id)
-        return render(request, self.template_name, {"row": row, "form": form})
+        create_form = PendingRowCreateBullForm()
+        return render(request, self.template_name, {"row": row, "form": form, "create_form": create_form})
+
+
+class CreateBullFromPendingRowView(View):
+    """
+    Создание нового быка из неизвестного номера Excel.
+
+    Это отдельное действие нужно потому, что по промту неизвестный номер
+    сначала должен привлечь внимание пользователя, а не создаваться молча.
+    """
+
+    def post(self, request, row_id):
+        row = get_object_or_404(ExcelImportPendingRow, pk=row_id)
+        form = PendingRowCreateBullForm(request.POST)
+        if form.is_valid():
+            bull = create_bull_from_pending_row(
+                pending_row=row,
+                arrived_at=form.cleaned_data["arrived_at"],
+                section=form.cleaned_data["section"],
+                comment=form.cleaned_data["comment"],
+            )
+            messages.success(request, f"Создан новый бык {bull.bull_number} из строки импорта.")
+            return redirect("herd:bull-detail", bull_id=bull.id)
+
+        resolve_form = ResolveImportRowForm()
+        resolve_form.fields["selected_bull"].queryset = Bull.objects.all()
+        return render(request, "herd/resolve_pending_row.html", {"row": row, "form": resolve_form, "create_form": form})
+
+
+class ArrivalCreateView(View):
+    """
+    Ручная регистрация поступления нового быка на площадку.
+    """
+
+    template_name = "herd/arrival_form.html"
+
+    def get(self, request):
+        return render(request, self.template_name, {"form": ArrivalForm()})
+
+    def post(self, request):
+        form = ArrivalForm(request.POST)
+        if form.is_valid():
+            section = form.cleaned_data["section"]
+            bull = Bull.objects.create(external_id=form.cleaned_data["external_id"], section=section)
+            ArrivalEvent.objects.create(
+                bull=bull,
+                arrived_at=form.cleaned_data["arrived_at"],
+                section=section,
+                arrival_weight_kg=form.cleaned_data["arrival_weight_kg"],
+                comment=form.cleaned_data["comment"],
+            )
+            if form.cleaned_data["arrival_weight_kg"] is not None:
+                WeightRecord.objects.create(
+                    bull=bull,
+                    weighing_date=form.cleaned_data["arrived_at"],
+                    weight_kg=form.cleaned_data["arrival_weight_kg"],
+                    source="manual",
+                    note="Вес при поступлении",
+                )
+            messages.success(request, "Поступление быка зарегистрировано.")
+            return redirect("herd:bull-detail", bull_id=bull.id)
+        return render(request, self.template_name, {"form": form})
 
 
 class ManualWeightCreateView(View):
