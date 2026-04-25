@@ -26,7 +26,18 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-y2lg*y2&c1)$j5x@$=md^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['bulik-production.up.railway.app', 'localhost', '127.0.0.1']
+default_allowed_hosts = [
+    "bulik-production.up.railway.app",
+    ".railway.app",
+    "localhost",
+    "127.0.0.1",
+]
+allowed_hosts_from_env = [
+    host.strip()
+    for host in os.environ.get("ALLOWED_HOSTS", "").split(",")
+    if host.strip()
+]
+ALLOWED_HOSTS = allowed_hosts_from_env or default_allowed_hosts
 
 
 # Application definition
