@@ -1,0 +1,2 @@
+[deploy]
+startCommand = "python manage.py migrate && python manage.py init_sections && gunicorn farm_site.wsgi:application --bind 0.0.0.0:$PORT"
