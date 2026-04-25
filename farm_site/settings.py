@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -20,12 +21,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-y2lg*y2&c1)$j5x@$=md^u$rym&8e+woaer_z#8c45$1_na_ov'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-y2lg*y2&c1)$j5x@$=md^u$rym&8e+woaer_z#8c45$1_na_ov')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['bulik-production.up.railway.app', 'localhost', '127.0.0.1']
 
 
 # Application definition
