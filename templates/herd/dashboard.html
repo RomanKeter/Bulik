@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <h3>Общая сводка</h3>
+    <p>Быков на площадке: <strong>{{ stats.total_active_bulls }}</strong></p>
+</div>
+
+<div class="card">
+    <h3>Секции: количество и средний вес</h3>
+    <table>
+        <tr><th>Секция</th><th>Количество</th><th>Средний вес, кг</th></tr>
+        {% for item in stats.section_counts %}
+            <tr>
+                <td>{{ item.section__name }}</td>
+                <td>{{ item.total }}</td>
+                <td>{{ item.avg_weight|default:"-"|floatformat:2 }}</td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="3">Нет данных</td></tr>
+        {% endfor %}
+    </table>
+</div>
+
+<div class="grid">
+    <div class="card">
+        <h3>Слабый набор (абсолютный, кг)</h3>
+        <table>
+            <tr><th>Бык</th><th>Привес</th></tr>
+            {% for row in rating.weak_absolute %}
+                <tr><td><a href="{% url 'herd:bull-detail' row.bull.id %}">{{ row.bull.bull_number }}</a></td><td>{{ row.absolute_gain|floatformat:2 }}</td></tr>
+            {% empty %}<tr><td colspan="2">Недостаточно данных</td></tr>{% endfor %}
+        </table>
+    </div>
+    <div class="card">
+        <h3>Лучший набор (абсолютный, кг)</h3>
+        <table>
+            <tr><th>Бык</th><th>Привес</th></tr>
+            {% for row in rating.best_absolute %}
+                <tr><td><a href="{% url 'herd:bull-detail' row.bull.id %}">{{ row.bull.bull_number }}</a></td><td>{{ row.absolute_gain|floatformat:2 }}</td></tr>
+            {% empty %}<tr><td colspan="2">Недостаточно данных</td></tr>{% endfor %}
+        </table>
+    </div>
+</div>
+
+<div class="grid">
+    <div class="card">
+        <h3>Слабый набор (среднесуточный, кг/день)</h3>
+        <table>
+            <tr><th>Бык</th><th>Кг/день</th></tr>
+            {% for row in rating.weak_daily %}
+                <tr><td><a href="{% url 'herd:bull-detail' row.bull.id %}">{{ row.bull.bull_number }}</a></td><td>{{ row.daily_gain|floatformat:3 }}</td></tr>
+            {% empty %}<tr><td colspan="2">Недостаточно данных</td></tr>{% endfor %}
+        </table>
+    </div>
+    <div class="card">
+        <h3>Лучший набор (среднесуточный, кг/день)</h3>
+        <table>
+            <tr><th>Бык</th><th>Кг/день</th></tr>
+            {% for row in rating.best_daily %}
+                <tr><td><a href="{% url 'herd:bull-detail' row.bull.id %}">{{ row.bull.bull_number }}</a></td><td>{{ row.daily_gain|floatformat:3 }}</td></tr>
+            {% empty %}<tr><td colspan="2">Недостаточно данных</td></tr>{% endfor %}
+        </table>
+    </div>
+</div>
+{% endblock %}

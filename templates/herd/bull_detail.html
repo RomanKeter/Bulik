@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <h3>Карточка быка {{ bull.external_id }}</h3>
+    <p><strong>Бивайка:</strong> {{ bull.biavka_part }}</p>
+    <p><strong>Номер быка:</strong> {{ bull.bull_number }}</p>
+    <p><strong>Секция:</strong> {{ bull.section|default:"-" }}</p>
+    <p><strong>Текущий вес:</strong> {{ bull.current_weight|default:"-" }}</p>
+    <p><strong>Статус:</strong> {% if bull.is_active %}На площадке{% else %}Выбыл{% endif %}</p>
+</div>
+
+{% if arrival %}
+<div class="card">
+    <h3>Поступление</h3>
+    <p><strong>Дата:</strong> {{ arrival.arrived_at }}</p>
+    <p><strong>Секция поступления:</strong> {{ arrival.section }}</p>
+    <p><strong>Вес при поступлении:</strong> {{ arrival.arrival_weight_kg|default:"-" }} кг</p>
+    <p><strong>Комментарий:</strong> {{ arrival.comment|default:"-" }}</p>
+</div>
+{% endif %}
+
+{% if departure %}
+<div class="card">
+    <h3>Выбытие</h3>
+    <p><strong>Дата:</strong> {{ departure.departed_at }}</p>
+    <p><strong>Вес на дату выбытия:</strong> {{ departure.departure_weight_kg }} кг</p>
+    <p><strong>Маркер:</strong> {{ departure.get_reason_display }}</p>
+    <p><strong>Комментарий:</strong> {{ departure.comment|default:"-" }}</p>
+</div>
+{% endif %}
+
+<div class="card">
+    <h3>Состояние здоровья и лечение</h3>
+    <form method="post" style="margin-bottom: 12px;">
+        {% csrf_token %}
+        {{ health_form.as_p }}
+        <button class="btn" type="submit">Добавить запись</button>
+    </form>
+    <table>
+        <tr><th>Дата</th><th>Состояние</th><th>Лечение/уколы</th><th>Комментарий</th></tr>
+        {% for rec in health_records %}
+            <tr>
+                <td>{{ rec.record_date }}</td>
+                <td>{{ rec.status_text }}</td>
+                <td>{{ rec.treatment_text|default:"-" }}</td>
+                <td>{{ rec.comment|default:"-" }}</td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="4">Записей о здоровье пока нет.</td></tr>
+        {% endfor %}
+    </table>
+</div>
+
+<div class="grid">
+    <div class="card">
+        <h3>История взвешиваний</h3>
+        <table>
+            <tr><th>Дата</th><th>Вес, кг</th><th>Источник</th><th>Комментарий</th></tr>
+            {% for rec in weights %}
+                <tr>
+                    <td>{{ rec.weighing_date }}</td>
+                    <td>{{ rec.weight_kg }}</td>
+                    <td>{{ rec.get_source_display }}</td>
+                    <td>{{ rec.note|default:"-" }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="4">Нет записей</td></tr>
+            {% endfor %}
+        </table>
+    </div>
+    <div class="card">
+        <h3>История перемещений</h3>
+        <table>
+            <tr><th>Дата</th><th>Из</th><th>В</th><th>Комментарий</th></tr>
+            {% for mv in movements %}
+                <tr>
+                    <td>{{ mv.moved_at }}</td>
+                    <td>{{ mv.from_section }}</td>
+                    <td>{{ mv.to_section }}</td>
+                    <td>{{ mv.note|default:"-" }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="4">Нет перемещений</td></tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+{% endblock %}

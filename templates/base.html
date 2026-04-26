@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Бычатник</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background: #f7f7f9; color: #1d1d1f; }
+        header { background: #1f2937; color: #fff; padding: 14px 20px; }
+        nav a { color: #fff; margin-right: 14px; text-decoration: none; }
+        main { padding: 20px; }
+        .card { background: #fff; border-radius: 8px; padding: 14px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        table { width: 100%; border-collapse: collapse; background: #fff; }
+        th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; }
+        th { background: #f3f4f6; }
+        .messages { list-style: none; padding: 0; }
+        .messages li { background: #dcfce7; border: 1px solid #86efac; padding: 10px; margin-bottom: 8px; border-radius: 6px; }
+        .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+        .muted { color: #6b7280; }
+        .btn { display: inline-block; padding: 8px 12px; background: #2563eb; color: #fff; text-decoration: none; border-radius: 6px; border: none; cursor: pointer; }
+        .btn-secondary { background: #4b5563; }
+        form p { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+<header>
+    <h2>Учет быков</h2>
+    <nav>
+        <a href="{% url 'herd:dashboard' %}">Главная</a>
+        <a href="{% url 'herd:bull-list' %}">Быки</a>
+        <a href="{% url 'herd:arrival-create' %}">Поступление</a>
+        <a href="{% url 'herd:import-excel' %}">Импорт Excel</a>
+        <a href="{% url 'herd:import-history' %}">История импортов</a>
+        <a href="{% url 'herd:manual-weight' %}">Ручная перевеска</a>
+        <a href="{% url 'herd:movement-create' %}">Перемещение</a>
+        <a href="{% url 'herd:departure-create' %}">Выбытие</a>
+    </nav>
+</header>
+<main>
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    {% block content %}{% endblock %}
+</main>
+</body>
+</html>
