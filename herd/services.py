@@ -17,6 +17,17 @@ from django.db.models import Avg, Count
 from .models import ArrivalEvent, Bull, ExcelImportBatch, ExcelImportPendingRow, WeightRecord
 
 
+def normalize_external_id(external_id: str) -> str:
+    """
+    Нормализует номер быка для сопоставления между БД и Excel.
+
+    Убираем пробелы/дефисы и приводим к нижнему регистру, чтобы
+    `BY000160-474233` и `by000160474233` считались одним номером.
+    """
+
+    return "".join((external_id or "").strip().replace("-", "").split()).lower()
+
+
 def split_external_id(external_id: str) -> tuple[str, str]:
     """
     Делит полный номер из файла на две части:
@@ -86,6 +97,12 @@ def import_weights_excel(file_obj) -> ImportResult:
     pending = 0
     total = 0
 
+    bulls_by_normalized_external_id = {}
+    bulls_by_number = {}
+    for bull in Bull.objects.all():
+        bulls_by_normalized_external_id[normalize_external_id(bull.external_id)] = bull
+        bulls_by_number.setdefault(bull.bull_number, []).append(bull)
+
     for row_idx in range(2, ws.max_row + 1):
         raw_external_id = str(ws.cell(row=row_idx, column=1).value or "").strip()
 
@@ -103,7 +120,13 @@ def import_weights_excel(file_obj) -> ImportResult:
             continue
 
         total += 1
-        bull = Bull.objects.filter(external_id=raw_external_id).first()
+        normalized_external_id = normalize_external_id(raw_external_id)
+        bull = bulls_by_normalized_external_id.get(normalized_external_id)
+        if not bull:
+            _, bull_number = split_external_id(normalized_external_id)
+            matched_by_number = bulls_by_number.get(bull_number, [])
+            if len(matched_by_number) == 1:
+                bull = matched_by_number[0]
 
         if bull:
             _apply_weight_map(bull, weights_by_date)
