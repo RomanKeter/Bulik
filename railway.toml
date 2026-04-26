@@ -1,2 +1,2 @@
 [deploy]
-startCommand = "sh -c 'python manage.py migrate && python manage.py init_sections && exec python manage.py runserver 0.0.0.0:5000'"
+startCommand = "sh -c 'python manage.py migrate && python manage.py collectstatic --noinput && exec gunicorn ranch_control.wsgi:application --bind 0.0.0.0:$PORT'"
