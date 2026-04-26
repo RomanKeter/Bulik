@@ -191,6 +191,12 @@ def _apply_weight_pair(bull, previous_date, current_date, prev_weight, curr_weig
         source="excel",
         defaults={"weight_kg": _as_decimal(prev_weight), "note": "Импорт: предыдущий вес"},
     )
+    WeightRecord.objects.update_or_create(
+        bull=bull,
+        weighing_date=current_date,
+        source="excel",
+        defaults={"weight_kg": _as_decimal(curr_weight), "note": "Импорт: текущий вес"},
+    )
 
 
 def _apply_weight_map(bull: Bull, weights_by_date: dict[str, str]) -> None:
@@ -208,12 +214,6 @@ def _apply_weight_map(bull: Bull, weights_by_date: dict[str, str]) -> None:
             source="excel",
             defaults={"weight_kg": _as_decimal(weight_value), "note": "Импорт из Excel"},
         )
-    WeightRecord.objects.update_or_create(
-        bull=bull,
-        weighing_date=current_date,
-        source="excel",
-        defaults={"weight_kg": _as_decimal(curr_weight), "note": "Импорт: текущий вес"},
-    )
 
 
 @transaction.atomic
