@@ -1,0 +1,21 @@
+{% extends "bulls/base.html" %}
+{% block title %}Массовый перевод{% endblock %}
+{% block content %}
+<h1 class="mb-4">Массовая смена секции</h1>
+
+{% if not selected_ids %}
+    <div class="alert alert-warning">Выберите быков галочками в разделе "Быки".</div>
+    <a class="btn btn-primary" href="{% url 'bulls:bull_list' %}">Перейти к списку</a>
+{% else %}
+    <div class="card">
+        <div class="card-body">
+            <p>Выбрано быков: {{ selected_ids|length }}</p>
+            <form method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button class="btn btn-primary" type="submit">Подтвердить перевод</button>
+            </form>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

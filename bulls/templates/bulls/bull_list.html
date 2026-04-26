@@ -1,0 +1,59 @@
+{% extends "bulls/base.html" %}
+{% block title %}Быки{% endblock %}
+{% block content %}
+<h1 class="mb-4">Список быков</h1>
+
+<div class="d-flex gap-2 flex-wrap mb-3">
+    <a class="btn btn-success" href="{% url 'bulls:excel_import' %}">Загрузить перевеску Excel</a>
+    <a class="btn btn-outline-secondary" href="{% url 'bulls:bulk_transfer' %}">Открыть массовый перевод</a>
+    <a class="btn btn-outline-dark" href="{% url 'bulls:reports' %}">Перейти к отчетам</a>
+</div>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-3">{{ form.query.label_tag }}{{ form.query }}</div>
+    <div class="col-md-3">{{ form.section.label_tag }}{{ form.section }}</div>
+    <div class="col-md-3">{{ form.sort_weight.label_tag }}{{ form.sort_weight }}</div>
+    <div class="col-md-3 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary">Применить</button>
+    </div>
+</form>
+
+<form method="get" action="{% url 'bulls:bulk_transfer' %}">
+    <div class="mb-3">
+        <button type="submit" class="btn btn-outline-secondary">Массово сменить секцию</button>
+    </div>
+
+    <table class="table table-striped table-hover">
+        <thead>
+        <tr>
+            <th></th>
+            <th>Бивайка</th>
+            <th>Номер быка</th>
+            <th>Секция</th>
+            <th>Текущий вес (кг)</th>
+            {% for weighing_date in date_headers %}
+                <th>{{ weighing_date|date:"d.m.Y" }}</th>
+            {% endfor %}
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for row in bulls_table_rows %}
+            <tr>
+                <td><input type="checkbox" name="selected_bulls" value="{{ row.bull.id }}"></td>
+                <td>{{ row.bull.bivayka }}</td>
+                <td>{{ row.bull.bull_number }}</td>
+                <td>{{ row.bull.current_section.number|default:"-" }}</td>
+                <td>{{ row.bull.latest_weight_kg|default:"-" }}</td>
+                {% for weight in row.weights %}
+                    <td>{{ weight|default:"-" }}</td>
+                {% endfor %}
+                <td><a href="{% url 'bulls:bull_detail' row.bull.id %}" class="btn btn-sm btn-outline-primary">Карточка</a></td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="20">Быки не найдены.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</form>
+{% endblock %}

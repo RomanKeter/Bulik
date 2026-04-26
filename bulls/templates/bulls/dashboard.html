@@ -1,0 +1,54 @@
+{% extends "bulls/base.html" %}
+{% block title %}Дашборд{% endblock %}
+{% block content %}
+<h1 class="mb-4">Дашборд площадки</h1>
+
+<div class="d-flex gap-2 flex-wrap mb-4">
+    <a class="btn btn-primary" href="{% url 'bulls:bull_list' %}">Открыть список быков</a>
+    <a class="btn btn-success" href="{% url 'bulls:excel_import' %}">Загрузить Excel</a>
+    <a class="btn btn-outline-secondary" href="{% url 'bulls:bulk_transfer' %}">Массово сменить секцию</a>
+    <a class="btn btn-outline-dark" href="{% url 'bulls:reports' %}">Открыть отчеты</a>
+    <a class="btn btn-outline-warning" href="/admin/">Админка</a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Активные быки</h5>
+                <p class="display-6">{{ active_bulls_count }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Выбывшие быки</h5>
+                <p class="display-6">{{ departed_bulls_count }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h2>Секции</h2>
+<table class="table table-bordered">
+    <thead>
+    <tr>
+        <th>Секция</th>
+        <th>Количество быков</th>
+        <th>Средний вес (кг)</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for row in sections_summary %}
+        <tr>
+            <td>{{ row.section_number }}</td>
+            <td>{{ row.bulls_count }}</td>
+            <td>{{ row.avg_weight|default:"-" }}</td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="3">Пока нет данных.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

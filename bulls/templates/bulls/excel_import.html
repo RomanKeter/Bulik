@@ -1,0 +1,70 @@
+{% extends "bulls/base.html" %}
+{% block title %}Импорт Excel{% endblock %}
+{% block content %}
+<h1 class="mb-4">Импорт перевески из Excel</h1>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <p class="mb-2"><strong>Поддерживаются 2 формата:</strong></p>
+        <ul>
+            <li>С заголовками: A = "бивайка", B = "номер быка", C,D,E... = даты.</li>
+            <li>Как на твоем скрине: A = полный номер, B,C,D... = веса. Даты можно не вводить: система подставит автоматически.</li>
+        </ul>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="mb-3">
+                {{ form.file.label_tag }}
+                {{ form.file }}
+                <div class="form-text">Поддерживаются файлы Excel (.xlsx, .xls).</div>
+            </div>
+            <div class="mb-3">
+                {{ form.manual_dates.label_tag }}
+                {{ form.manual_dates }}
+                <div class="form-text">{{ form.manual_dates.help_text }}</div>
+            </div>
+            <div class="form-check mb-3">
+                {{ form.auto_create_missing_bulls }}
+                {{ form.auto_create_missing_bulls.label_tag }}
+                <div class="form-text">{{ form.auto_create_missing_bulls.help_text }}</div>
+            </div>
+            <button class="btn btn-success" type="submit">Загрузить файл</button>
+        </form>
+    </div>
+</div>
+
+<h2>Неразрешенные номера</h2>
+<table class="table table-bordered table-sm">
+    <thead>
+    <tr>
+        <th>Входной номер</th>
+        <th>Дата</th>
+        <th>Вес</th>
+        <th>Похожие номера</th>
+        <th>Исправление</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for issue, resolve_form in issue_forms %}
+        <tr>
+            <td>{{ issue.incoming_full_code }}</td>
+            <td>{{ issue.weighing_date }}</td>
+            <td>{{ issue.weight_kg }}</td>
+            <td>{{ issue.suggested_full_codes|join:", "|default:"-" }}</td>
+            <td>
+                {% if resolve_form.fields.selected_bull.queryset %}
+                    <form method="post" action="{% url 'bulls:resolve_import_issue' issue.id %}">
+                        {% csrf_token %}
+                        {{ resolve_form.selected_bull }}
+                        <button class="btn btn-sm btn-primary mt-1" type="submit">Применить</button>
+                    </form>
+                {% else %}
+                    Нет похожих номеров
+                {% endif %}
+            </td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="5">Проблемных номеров нет.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

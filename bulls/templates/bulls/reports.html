@@ -1,0 +1,77 @@
+{% extends "bulls/base.html" %}
+{% block title %}Отчеты{% endblock %}
+{% block content %}
+<h1 class="mb-4">Отчеты и рейтинг привеса</h1>
+
+<div class="d-flex gap-2 flex-wrap mb-3">
+    <a class="btn btn-outline-primary" href="{% url 'bulls:bull_list' %}">К списку быков</a>
+    <a class="btn btn-outline-success" href="{% url 'bulls:excel_import' %}">К импорту Excel</a>
+</div>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-3">
+        <label class="form-label">Начало периода</label>
+        <input class="form-control" type="date" name="start_date" value="{{ period_start|date:'Y-m-d' }}">
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Конец периода</label>
+        <input class="form-control" type="date" name="end_date" value="{{ period_end|date:'Y-m-d' }}">
+    </div>
+    <div class="col-md-3 d-flex align-items-end">
+        <button class="btn btn-primary" type="submit">Показать</button>
+    </div>
+</form>
+
+<div class="mb-4">
+    <a class="btn btn-outline-success" href="{% url 'bulls:reports_export_excel' %}">Выгрузить Excel</a>
+    <a class="btn btn-outline-danger" href="{% url 'bulls:reports_export_pdf' %}">Выгрузить PDF</a>
+</div>
+
+<p><strong>Быкодни за период:</strong> {{ bull_days }}</p>
+
+<div class="row">
+    <div class="col-lg-6">
+        <h3>Слабые по абсолютному привесу</h3>
+        <ul class="list-group mb-4">
+            {% for row in ranking.weakest_by_gain %}
+                <li class="list-group-item">{{ row.bull.bivayka }}-{{ row.bull.bull_number }}: {{ row.gain_kg }} кг</li>
+            {% empty %}
+                <li class="list-group-item">Недостаточно данных</li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="col-lg-6">
+        <h3>Лучшие по абсолютному привесу</h3>
+        <ul class="list-group mb-4">
+            {% for row in ranking.strongest_by_gain %}
+                <li class="list-group-item">{{ row.bull.bivayka }}-{{ row.bull.bull_number }}: {{ row.gain_kg }} кг</li>
+            {% empty %}
+                <li class="list-group-item">Недостаточно данных</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <h3>Слабые по среднесуточному привесу</h3>
+        <ul class="list-group mb-4">
+            {% for row in ranking.weakest_by_daily_gain %}
+                <li class="list-group-item">{{ row.bull.bivayka }}-{{ row.bull.bull_number }}: {{ row.daily_gain|floatformat:3 }} кг/день</li>
+            {% empty %}
+                <li class="list-group-item">Недостаточно данных</li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="col-lg-6">
+        <h3>Лучшие по среднесуточному привесу</h3>
+        <ul class="list-group mb-4">
+            {% for row in ranking.strongest_by_daily_gain %}
+                <li class="list-group-item">{{ row.bull.bivayka }}-{{ row.bull.bull_number }}: {{ row.daily_gain|floatformat:3 }} кг/день</li>
+            {% empty %}
+                <li class="list-group-item">Недостаточно данных</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}

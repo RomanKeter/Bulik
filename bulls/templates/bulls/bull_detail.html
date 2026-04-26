@@ -1,0 +1,84 @@
+{% extends "bulls/base.html" %}
+{% block title %}Карточка быка{% endblock %}
+{% block content %}
+<h1 class="mb-3">Карточка: {{ bull.bivayka }}-{{ bull.bull_number }}</h1>
+<p>Секция: {{ bull.current_section|default:"-" }} | Статус: {{ bull.get_status_display }}</p>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">Добавить/исправить взвешивание</div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_weight">
+                    {{ weight_form.as_p }}
+                    <button class="btn btn-primary" type="submit">Сохранить взвешивание</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">Добавить запись о здоровье</div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_health">
+                    {{ health_form.as_p }}
+                    <button class="btn btn-primary" type="submit">Сохранить запись</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card my-4">
+    <div class="card-header">Отметить выбытие</div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="mark_departure">
+            {{ departure_form.as_p }}
+            <button class="btn btn-danger" type="submit">Отметить выбытие</button>
+        </form>
+    </div>
+</div>
+
+<h2>История веса</h2>
+<table class="table table-sm table-bordered">
+    <thead>
+    <tr><th>Дата</th><th>Вес (кг)</th><th>Источник</th></tr>
+    </thead>
+    <tbody>
+    {% for row in weights %}
+        <tr>
+            <td>{{ row.weighing_date }}</td>
+            <td>{{ row.weight_kg }}</td>
+            <td>{{ row.get_source_display }}</td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="3">Нет взвешиваний.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<h2>История лечения и состояния</h2>
+<table class="table table-sm table-bordered">
+    <thead>
+    <tr><th>Дата</th><th>Тип</th><th>Описание</th><th>Закрыто</th></tr>
+    </thead>
+    <tbody>
+    {% for row in health_records %}
+        <tr>
+            <td>{{ row.record_date }}</td>
+            <td>{{ row.get_record_type_display }}</td>
+            <td>{{ row.description }}</td>
+            <td>{% if row.resolved %}Да{% else %}Нет{% endif %}</td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="4">Нет записей о здоровье.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
