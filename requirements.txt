@@ -1,9 +1,6 @@
 django
-<<<<<<< HEAD
 pandas
 openpyxl
 reportlab
-=======
-openpyxl
 gunicorn
->>>>>>> origin/main
+whitenoise
