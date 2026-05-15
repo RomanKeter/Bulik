@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <h3>Результат импорта #{{ batch.id }}</h3>
+    <p>Строк в файле: <strong>{{ batch.total_rows }}</strong></p>
+    <p>Применено: <strong>{{ batch.applied_rows }}</strong></p>
+    <p>Требуют сопоставления: <strong>{{ batch.pending_rows }}</strong></p>
+    <p>Даты из файла: {{ batch.weighing_dates|join:", " }}</p>
+</div>
+
+<div class="card">
+    <h3>Неопознанные номера</h3>
+    <table>
+        <tr><th>Номер из файла</th><th>Первый вес</th><th>Последний вес</th><th>Похожие номера</th><th>Действие</th></tr>
+        {% for row in unresolved_qs %}
+            <tr>
+                <td>{{ row.raw_external_id }}</td>
+                <td>{{ row.previous_weight_kg }}</td>
+                <td>{{ row.current_weight_kg }}</td>
+                <td>{{ row.suggested_ids|join:", "|default:"Нет подсказок" }}</td>
+                <td><a class="btn" href="{% url 'herd:resolve-import-row' row.id %}">Сопоставить</a></td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="5">Проблемных строк нет.</td></tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

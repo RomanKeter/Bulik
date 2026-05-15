@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <h3>Список быков</h3>
+    <form method="get" style="margin-bottom: 12px;">
+        <label for="id_q"><strong>Поиск по номеру</strong></label>
+        <input id="id_q" type="text" name="q" value="{{ search_query }}" placeholder="Введите номер быка или бивайку">
+        <button class="btn" type="submit">Найти</button>
+        <a class="btn btn-secondary" href="{% url 'herd:bull-list' %}">Сбросить</a>
+    </form>
+    <p class="muted">
+        Сортировка по весу:
+        <a href="?q={{ search_query|urlencode }}&sort_weight=asc">по возрастанию</a> |
+        <a href="?q={{ search_query|urlencode }}&sort_weight=desc">по убыванию</a> |
+        <a href="?q={{ search_query|urlencode }}">по номеру</a>
+    </p>
+    <table>
+        <tr>
+            <th>Бивайка</th>
+            <th>Номер быка</th>
+            <th>Секция</th>
+            <th>Текущий вес</th>
+            <th>Статус</th>
+        </tr>
+        {% for bull in bulls %}
+            <tr>
+                <td>{{ bull.biavka_part }}</td>
+                <td><a href="{% url 'herd:bull-detail' bull.id %}">{{ bull.bull_number }}</a></td>
+                <td>{{ bull.section|default:"-" }}</td>
+                <td>{{ bull.latest_weight|default:"-" }}</td>
+                <td>{% if bull.is_active %}На площадке{% else %}Выбыл{% endif %}</td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="5">Быки не найдены.</td></tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

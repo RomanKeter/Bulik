@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <h3>Импорт Excel</h3>
+    <p class="muted">
+        Ожидается формат из промта: A - полный номер быка, B/C/D... - даты
+        взвешиваний в заголовках, ниже - веса на эти даты.
+    </p>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button class="btn" type="submit">Загрузить и обработать</button>
+    </form>
+</div>
+
+<div class="card">
+    <h3>Последние загрузки</h3>
+    <table>
+        <tr>
+            <th>ID импорта</th>
+            <th>Дата загрузки</th>
+            <th>Строк всего</th>
+            <th>Применено</th>
+            <th>Требуют проверки</th>
+            <th></th>
+        </tr>
+        {% for batch in recent_batches %}
+            <tr>
+                <td>#{{ batch.id }}</td>
+                <td>{{ batch.created_at }}</td>
+                <td>{{ batch.total_rows }}</td>
+                <td>{{ batch.applied_rows }}</td>
+                <td>{{ batch.pending_rows }}</td>
+                <td><a class="btn btn-secondary" href="{% url 'herd:import-batch-detail' batch.id %}">Открыть</a></td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="6">Пока нет загруженных Excel.</td></tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}
