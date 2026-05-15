@@ -298,6 +298,13 @@ class ExcelImportBatch(models.Model):
     total_rows = models.PositiveIntegerField("Строк в файле", default=0)
     applied_rows = models.PositiveIntegerField("Применено строк", default=0)
     pending_rows = models.PositiveIntegerField("Требуют сопоставления", default=0)
+    bulls = models.ManyToManyField(
+        Bull,
+        verbose_name="Быки из файла",
+        related_name="excel_import_batches",
+        blank=True,
+        help_text="Быки, для которых из этого Excel применены веса.",
+    )
 
     def __str__(self) -> str:
         return f"Импорт #{self.pk} от {self.created_at:%d.%m.%Y %H:%M}"

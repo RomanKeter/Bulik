@@ -136,6 +136,7 @@ def import_weights_excel(file_obj) -> ImportResult:
 
         if bull:
             _apply_weight_map(bull, weights_by_date)
+            batch.bulls.add(bull)
             applied += 1
             continue
 
@@ -286,6 +287,7 @@ def resolve_pending_row(pending_row: ExcelImportPendingRow, bull: Bull) -> None:
     batch.applied_rows += 1
     batch.pending_rows = max(batch.pending_rows - 1, 0)
     batch.save(update_fields=["applied_rows", "pending_rows"])
+    batch.bulls.add(bull)
 
 
 @transaction.atomic
@@ -307,25 +309,54 @@ def create_bull_from_pending_row(pending_row: ExcelImportPendingRow, arrived_at,
     return bull
 
 
-def build_dashboard_stats() -> dict:
+def get_batch_weighing_dates(batch: ExcelImportBatch) -> list[date]:
     """
-    Собирает агрегаты для главной панели и простых отчетов.
+    Возвращает даты взвешиваний из заголовков выбранного Excel-файла.
     """
 
+    dates = []
+    for date_text in batch.weighing_dates:
+        dates.append(datetime.strptime(date_text, "%Y-%m-%d").date())
+    return dates
+
+
+def get_bulls_for_import_batch(batch: ExcelImportBatch):
+    """
+    Возвращает быков, привязанных к загруженному файлу импорта.
+    """
+
+    return Bull.objects.filter(excel_import_batches=batch, is_active=True).distinct()
+
+
+def build_dashboard_stats(batch: ExcelImportBatch | None = None) -> dict:
+    """
+    Собирает агрегаты для главной панели и простых отчетов.
+
+    Если передан пакет импорта, учитываются только быки из этого файла.
+    """
+
+    bulls_qs = Bull.objects.filter(is_active=True)
+    if batch is not None:
+        bulls_qs = get_bulls_for_import_batch(batch)
+
     section_counts = (
-        Bull.objects.filter(is_active=True, section__isnull=False)
+        bulls_qs.filter(section__isnull=False)
         .values("section__name")
         .annotate(total=Count("id"), avg_weight=Avg("weight_records__weight_kg"))
         .order_by("section__name")
     )
 
-    return {
-        "total_active_bulls": Bull.objects.filter(is_active=True).count(),
+    result = {
+        "total_active_bulls": bulls_qs.count(),
         "section_counts": list(section_counts),
     }
+    if batch is not None:
+        result["unresolved_rows"] = batch.pending_items.filter(is_resolved=False).count()
+        result["file_rows"] = batch.total_rows
+    return result
 
 
-def build_growth_rating(limit: int = 10) -> dict:
+def build_growth_rating(batch: ExcelImportBatch | None = None, limit: int = 10) -> dict:
     """
     Формирует рейтинги слабого и лучшего набора веса.
 
@@ -334,9 +365,18 @@ def build_growth_rating(limit: int = 10) -> dict:
     - среднесуточный привес = абсолютный / количество дней между замерами.
     """
 
+    bulls_qs = Bull.objects.filter(is_active=True)
+    weighing_dates = None
+    if batch is not None:
+        bulls_qs = get_bulls_for_import_batch(batch)
+        weighing_dates = get_batch_weighing_dates(batch)
+
     bulls_data = []
-    for bull in Bull.objects.filter(is_active=True).prefetch_related("weight_records"):
-        records = list(bull.weight_records.order_by("weighing_date"))
+    for bull in bulls_qs.prefetch_related("weight_records"):
+        records_qs = bull.weight_records.order_by("weighing_date")
+        if weighing_dates is not None:
+            records_qs = records_qs.filter(weighing_date__in=weighing_dates)
+        records = list(records_qs)
         if len(records) < 2:
             continue
 

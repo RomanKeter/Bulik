@@ -35,9 +35,17 @@ class DashboardView(View):
     template_name = "herd/dashboard.html"
 
     def get(self, request):
+        import_batches = ExcelImportBatch.objects.order_by("-created_at")
+        selected_batch = None
+        batch_id = (request.GET.get("batch") or "").strip()
+        if batch_id.isdigit():
+            selected_batch = import_batches.filter(pk=int(batch_id)).first()
+
         context = {
-            "stats": build_dashboard_stats(),
-            "rating": build_growth_rating(),
+            "stats": build_dashboard_stats(selected_batch),
+            "rating": build_growth_rating(selected_batch),
+            "import_batches": import_batches,
+            "selected_batch": selected_batch,
         }
         return render(request, self.template_name, context)
 

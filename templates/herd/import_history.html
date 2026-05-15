@@ -21,7 +21,10 @@
                 <td>{{ batch.total_rows }}</td>
                 <td>{{ batch.applied_rows }}</td>
                 <td>{{ batch.pending_rows }}</td>
-                <td><a class="btn" href="{% url 'herd:import-batch-detail' batch.id %}">Открыть</a></td>
+                <td>
+                    <a class="btn btn-secondary" href="{% url 'herd:dashboard' %}?batch={{ batch.id }}">На главную</a>
+                    <a class="btn" href="{% url 'herd:import-batch-detail' batch.id %}">Открыть</a>
+                </td>
             </tr>
         {% empty %}
             <tr><td colspan="7">Импортов пока нет.</td></tr>

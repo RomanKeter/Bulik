@@ -1,8 +1,39 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="card">
-    <h3>Общая сводка</h3>
-    <p>Быков на площадке: <strong>{{ stats.total_active_bulls }}</strong></p>
+    <h3>Фильтр по загруженному файлу</h3>
+    <form method="get" class="batch-filter">
+        <p>
+            <label for="batch">Показать данные по файлу:</label>
+            <select id="batch" name="batch" onchange="this.form.submit()">
+                <option value="">Все быки на площадке</option>
+                {% for batch in import_batches %}
+                    <option value="{{ batch.id }}" {% if selected_batch and selected_batch.id == batch.id %}selected{% endif %}>
+                        Импорт #{{ batch.id }} от {{ batch.created_at|date:"d.m.Y H:i" }}
+                        (строк: {{ batch.total_rows }})
+                    </option>
+                {% endfor %}
+            </select>
+        </p>
+    </form>
+    {% if selected_batch %}
+        <p class="muted">
+            Выбран импорт #{{ selected_batch.id }}.
+            Даты из файла: {{ selected_batch.weighing_dates|join:", " }}.
+            Строк в файле: {{ selected_batch.total_rows }},
+            применено: {{ selected_batch.applied_rows }},
+            не сопоставлено: {{ selected_batch.pending_rows }}.
+            <a href="{% url 'herd:import-batch-detail' selected_batch.id %}">Открыть детали импорта</a>
+        </p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h3>Общая сводка{% if selected_batch %} (по выбранному файлу){% endif %}</h3>
+    <p>Быков{% if selected_batch %} из файла{% endif %}: <strong>{{ stats.total_active_bulls }}</strong></p>
+    {% if selected_batch and stats.unresolved_rows %}
+        <p class="muted">Строк без сопоставленного быка: {{ stats.unresolved_rows }}</p>
+    {% endif %}
 </div>
 
 <div class="card">
