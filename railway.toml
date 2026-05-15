@@ -1,2 +1,3 @@
 [deploy]
-startCommand = "sh -c 'python manage.py migrate && python manage.py init_sections && exec python manage.py runserver 0.0.0.0:5000'"
+preDeployCommand = "python manage.py migrate && python manage.py init_sections"
+startCommand = "gunicorn farm_site.wsgi:application --bind 0.0.0.0:$PORT"
