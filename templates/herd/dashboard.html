@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="card">
-    <h3>Фильтр по загруженному файлу</h3>
+    <h3>Выбор загруженного файла</h3>
     <form method="get" class="batch-filter">
         <p>
-            <label for="batch">Показать данные по файлу:</label>
+            <label for="batch">Файл для отчёта на главной:</label>
             <select id="batch" name="batch" onchange="this.form.submit()">
-                <option value="">Все быки на площадке</option>
+                <option value="">— не выбран —</option>
                 {% for batch in import_batches %}
                     <option value="{{ batch.id }}" {% if selected_batch and selected_batch.id == batch.id %}selected{% endif %}>
                         Импорт #{{ batch.id }} от {{ batch.created_at|date:"d.m.Y H:i" }}
@@ -16,28 +16,35 @@
             </select>
         </p>
     </form>
-    {% if selected_batch %}
+</div>
+
+{% if selected_batch %}
+<div class="card">
+    <h3>Общая сводка</h3>
+    <p class="muted batch-info">
+        <strong>Файл:</strong> импорт #{{ selected_batch.id }}
+        от {{ selected_batch.created_at|date:"d.m.Y H:i" }} ·
+        даты взвешиваний: {{ selected_batch.weighing_dates|join:", " }}
+    </p>
+    <p>Быков в файле (сопоставлено): <strong>{{ stats.total_active_bulls }}</strong></p>
+    <p>Строк в файле: <strong>{{ stats.file_rows }}</strong>,
+       применено: <strong>{{ stats.applied_rows }}</strong>,
+       не сопоставлено: <strong>{{ stats.unresolved_rows }}</strong></p>
+    {% if stats.unresolved_rows %}
         <p class="muted">
-            Выбран импорт #{{ selected_batch.id }}.
-            Даты из файла: {{ selected_batch.weighing_dates|join:", " }}.
-            Строк в файле: {{ selected_batch.total_rows }},
-            применено: {{ selected_batch.applied_rows }},
-            не сопоставлено: {{ selected_batch.pending_rows }}.
-            <a href="{% url 'herd:import-batch-detail' selected_batch.id %}">Открыть детали импорта</a>
+            Строки без быка не входят в сводку и рейтинги.
+            <a href="{% url 'herd:import-batch-detail' selected_batch.id %}">Сопоставить в импорте</a>
         </p>
     {% endif %}
 </div>
 
 <div class="card">
-    <h3>Общая сводка{% if selected_batch %} (по выбранному файлу){% endif %}</h3>
-    <p>Быков{% if selected_batch %} из файла{% endif %}: <strong>{{ stats.total_active_bulls }}</strong></p>
-    {% if selected_batch and stats.unresolved_rows %}
-        <p class="muted">Строк без сопоставленного быка: {{ stats.unresolved_rows }}</p>
-    {% endif %}
-</div>
-
-<div class="card">
     <h3>Секции: количество и средний вес</h3>
+    <p class="muted batch-info">
+        <strong>Файл:</strong> импорт #{{ selected_batch.id }} ·
+        средний вес по последней дате из файла
+        ({{ selected_batch.current_weighing_date|date:"d.m.Y" }})
+    </p>
     <table>
         <tr><th>Секция</th><th>Количество</th><th>Средний вес, кг</th></tr>
         {% for item in stats.section_counts %}
@@ -47,7 +54,7 @@
                 <td>{{ item.avg_weight|default:"-"|floatformat:2 }}</td>
             </tr>
         {% empty %}
-            <tr><td colspan="3">Нет данных</td></tr>
+            <tr><td colspan="3">В файле нет быков с секцией и весом на даты импорта</td></tr>
         {% endfor %}
     </table>
 </div>
@@ -55,15 +62,30 @@
 <div class="grid">
     <div class="card">
         <h3>Слабый набор (абсолютный, кг)</h3>
+        <p class="muted batch-info">
+            <strong>Файл:</strong> импорт #{{ selected_batch.id }} ·
+            привес между {{ selected_batch.previous_weighing_date|date:"d.m.Y" }}
+            и {{ selected_batch.current_weighing_date|date:"d.m.Y" }}
+        </p>
         <table>
-            <tr><th>Бык</th><th>Привес</th></tr>
+            <tr><th>Бык</th><th>Было</th><th>Стало</th><th>Привес</th></tr>
             {% for row in rating.weak_absolute %}
-                <tr><td><a href="{% url 'herd:bull-detail' row.bull.id %}">{{ row.bull.bull_number }}</a></td><td>{{ row.absolute_gain|floatformat:2 }}</td></tr>
-            {% empty %}<tr><td colspan="2">Недостаточно данных</td></tr>{% endfor %}
+                <tr>
+                    <td><a href="{% url 'herd:bull-detail' row.bull.id %}">{{ row.bull.bull_number }}</a></td>
+                    <td>{{ row.first_weight|floatformat:2 }}</td>
+                    <td>{{ row.last_weight|floatformat:2 }}</td>
+                    <td>{{ row.absolute_gain|floatformat:2 }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="4">Недостаточно данных (нужны веса минимум на две даты из файла)</td></tr>
+            {% endfor %}
         </table>
     </div>
     <div class="card">
         <h3>Лучший набор (абсолютный, кг)</h3>
+        <p class="muted batch-info">
+            <strong>Файл:</strong> импорт #{{ selected_batch.id }}
+        </p>
         <table>
             <tr><th>Бык</th><th>Привес</th></tr>
             {% for row in rating.best_absolute %}
@@ -76,15 +98,29 @@
 <div class="grid">
     <div class="card">
         <h3>Слабый набор (среднесуточный, кг/день)</h3>
+        <p class="muted batch-info">
+            <strong>Файл:</strong> импорт #{{ selected_batch.id }} ·
+            период {{ selected_batch.previous_weighing_date|date:"d.m.Y" }}
+            — {{ selected_batch.current_weighing_date|date:"d.m.Y" }}
+        </p>
         <table>
-            <tr><th>Бык</th><th>Кг/день</th></tr>
+            <tr><th>Бык</th><th>Дней</th><th>Кг/день</th></tr>
             {% for row in rating.weak_daily %}
-                <tr><td><a href="{% url 'herd:bull-detail' row.bull.id %}">{{ row.bull.bull_number }}</a></td><td>{{ row.daily_gain|floatformat:3 }}</td></tr>
-            {% empty %}<tr><td colspan="2">Недостаточно данных</td></tr>{% endfor %}
+                <tr>
+                    <td><a href="{% url 'herd:bull-detail' row.bull.id %}">{{ row.bull.bull_number }}</a></td>
+                    <td>{{ row.days }}</td>
+                    <td>{{ row.daily_gain|floatformat:3 }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="3">Недостаточно данных (нужны веса минимум на две даты из файла)</td></tr>
+            {% endfor %}
         </table>
     </div>
     <div class="card">
         <h3>Лучший набор (среднесуточный, кг/день)</h3>
+        <p class="muted batch-info">
+            <strong>Файл:</strong> импорт #{{ selected_batch.id }}
+        </p>
         <table>
             <tr><th>Бык</th><th>Кг/день</th></tr>
             {% for row in rating.best_daily %}
@@ -93,4 +129,27 @@
         </table>
     </div>
 </div>
+
+{% else %}
+<div class="card">
+    <h3>Общая сводка</h3>
+    <p class="muted">Выберите загруженный файл в списке выше — сводка появится здесь.</p>
+</div>
+
+<div class="card">
+    <h3>Секции: количество и средний вес</h3>
+    <p class="muted">Выберите загруженный файл в списке выше.</p>
+</div>
+
+<div class="grid">
+    <div class="card">
+        <h3>Слабый набор (абсолютный, кг)</h3>
+        <p class="muted">Выберите загруженный файл в списке выше.</p>
+    </div>
+    <div class="card">
+        <h3>Слабый набор (среднесуточный, кг/день)</h3>
+        <p class="muted">Выберите загруженный файл в списке выше.</p>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

@@ -325,7 +325,59 @@ def get_bulls_for_import_batch(batch: ExcelImportBatch):
     Возвращает быков, привязанных к загруженному файлу импорта.
     """
 
-    return Bull.objects.filter(excel_import_batches=batch, is_active=True).distinct()
+    bull_ids = set(batch.bulls.values_list("pk", flat=True))
+    bull_ids.update(
+        batch.pending_items.filter(is_resolved=True, resolved_to__isnull=False).values_list(
+            "resolved_to_id", flat=True
+        )
+    )
+    if not bull_ids:
+        return Bull.objects.none()
+    return Bull.objects.filter(pk__in=bull_ids, is_active=True).distinct()
+
+
+def _build_section_counts(bulls_qs, weighing_dates: list[date] | None = None) -> list[dict]:
+    """
+    Считает количество быков и средний вес по секциям.
+
+    Для выбранного файла средний вес берётся по последней дате перевески из этого Excel.
+    """
+
+    if weighing_dates is None:
+        section_counts = (
+            bulls_qs.filter(section__isnull=False)
+            .values("section__name")
+            .annotate(total=Count("id"), avg_weight=Avg("weight_records__weight_kg"))
+            .order_by("section__name")
+        )
+        return list(section_counts)
+
+    section_map: dict[str, dict] = {}
+    bulls = bulls_qs.filter(section__isnull=False).select_related("section")
+    for bull in bulls:
+        latest_record = (
+            bull.weight_records.filter(weighing_date__in=weighing_dates).order_by("-weighing_date").first()
+        )
+        if not latest_record:
+            continue
+        section_name = bull.section.name
+        bucket = section_map.setdefault(section_name, {"section__name": section_name, "total": 0, "weights": []})
+        bucket["total"] += 1
+        bucket["weights"].append(latest_record.weight_kg)
+
+    section_counts = []
+    for section_name in sorted(section_map):
+        bucket = section_map[section_name]
+        weights = bucket["weights"]
+        avg_weight = sum(Decimal(weight) for weight in weights) / Decimal(len(weights))
+        section_counts.append(
+            {
+                "section__name": section_name,
+                "total": bucket["total"],
+                "avg_weight": avg_weight,
+            }
+        )
+    return section_counts
 
 
 def build_dashboard_stats(batch: ExcelImportBatch | None = None) -> dict:
@@ -336,23 +388,20 @@ def build_dashboard_stats(batch: ExcelImportBatch | None = None) -> dict:
     """
 
     bulls_qs = Bull.objects.filter(is_active=True)
+    weighing_dates = None
     if batch is not None:
         bulls_qs = get_bulls_for_import_batch(batch)
-
-    section_counts = (
-        bulls_qs.filter(section__isnull=False)
-        .values("section__name")
-        .annotate(total=Count("id"), avg_weight=Avg("weight_records__weight_kg"))
-        .order_by("section__name")
-    )
+        weighing_dates = get_batch_weighing_dates(batch)
 
     result = {
         "total_active_bulls": bulls_qs.count(),
-        "section_counts": list(section_counts),
+        "section_counts": _build_section_counts(bulls_qs, weighing_dates),
     }
     if batch is not None:
         result["unresolved_rows"] = batch.pending_items.filter(is_resolved=False).count()
         result["file_rows"] = batch.total_rows
+        result["applied_rows"] = batch.applied_rows
+        result["weighing_dates"] = batch.weighing_dates
     return result
 
 
